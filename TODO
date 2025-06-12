@@ -2,3 +2,7 @@ Pending tasks
 User.new.save not getting saved
 User.new => not getting saved & not getting full attributes
 
+User.last.update not working
+
+
+
