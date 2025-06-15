@@ -1,0 +1,10 @@
+[
+  {
+    "id": 1,
+    "_class": "Product",
+    "name": "Pencil",
+    "price_region": 45.9,
+    "created_at": "2025-06-15 21:32:53 +0530",
+    "updated_at": "2025-06-15 21:32:53 +0530"
+  }
+]

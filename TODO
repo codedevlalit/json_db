@@ -1,8 +1,28 @@
 Pending tasks
-User.new.save not getting saved
-User.new => not getting saved & not getting full attributes
 
-User.last.update not working
+// done using _class attributes
+User.new.save not getting saved // done
+User.new => not getting saved & not getting full attributes //done
+User.last.update not working // done 
 
 
 
+# Example usage:
+# To generate a new JSON model, run the following command in your terminal:
+# rails generate json_model ModelName attribute1 attribute2 attribute3
+
+# For example:
+# rails generate json_model User name email age
+
+# This will create a file `app/models/user.rb` with the following content:
+# class User < JsonModel
+#   include ActiveModel::Model
+#
+#   attr_accessor :name, :email, :age
+# end
+
+
+
+has_one //done
+has_many //done
+belongs_to //done

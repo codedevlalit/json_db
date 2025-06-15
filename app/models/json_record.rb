@@ -1,0 +1,2 @@
+class JsonRecord < JsonModel
+end

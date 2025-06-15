@@ -3,28 +3,6 @@ require 'ostruct'
 require 'active_support/core_ext/string'
 
 class JsonModel
-
-    def self.has_many(association_name, class_name:, foreign_key: nil, dependent: nil)
-        define_method(association_name) do
-            key = foreign_key || "#{self.class.name.underscore}_id"
-            class_name.constantize.all.select { |record| record.send(key) == self.id }
-        end
-
-        if dependent == :destroy
-            define_method("destroy_#{association_name}") do
-                send(association_name).each(&:destroy)
-            end
-        end
-    end
-
-    def self.belongs_to(association_name, class_name:, foreign_key: nil, optional: false)
-        define_method(association_name) do
-            key = foreign_key || "#{association_name}_id"
-            id = self.send(key)
-            return nil if optional && id.nil?
-            class_name.constantize.find(id)
-        end
-    end
     
     def self.file_path
         "db/#{name.underscore}.json"
@@ -57,17 +35,71 @@ class JsonModel
         self.instance_methods(false).grep(/=$/).map { |method| method.to_s.chomp('=') }
     end
 
-    def self.new(attributes = {})
-        default_attributes = { 'id' => nil, 'created_at' => nil, 'updated_at' => nil }
+    def self.has_many(association_name, class_name:, foreign_key: nil, dependent: nil)
+        define_method(association_name) do
+            key = foreign_key || "#{self.class.name.underscore}_id"
+            class_name.constantize.all.select do |record|
+                record.send(key) == self.id
+            end
+        end
 
+        if dependent == :destroy
+            define_method("destroy_#{association_name}") do
+                send(association_name).each(&:destroy)
+            end
+        end
+
+        JsonModel::Record.define_method(association_name) do
+            key = foreign_key || "#{self._class.constantize.name.underscore}_id"
+            class_name.constantize.all.select do |record|
+                record.send(key) == self.id
+            end
+        end
+    end
+
+    def self.has_one(association_name, class_name:, foreign_key: nil, optional: false)
+        define_method(association_name) do
+            key = foreign_key || "#{association_name}_id"
+            id = self.send(key)
+            return nil if optional && id.nil?
+            class_name.constantize.all.find { |record| record.id == id }
+        end
+
+        JsonModel::Record.define_method(association_name) do
+            key = foreign_key || "#{association_name}_id"
+            id = self.send(key)
+            return nil if optional && id.nil?
+            class_name.constantize.all.find { |record| record.id == id }
+        end
+    end
+
+    def self.belongs_to(association_name, class_name:, foreign_key: nil, optional: false)
+        define_method(association_name) do
+            key = foreign_key || "#{association_name}_id"
+            id = self.send(key)
+            return nil if optional && id.nil?
+            class_name.constantize.all.find { |record| record.id == id }
+        end
+
+        JsonModel::Record.define_method(association_name) do
+            key = foreign_key || "#{association_name}_id"
+            id = self.send(key)
+            return nil if optional && id.nil?
+            class_name.constantize.all.find { |record| record.id == id }
+        end
+    end
+
+    
+    def self.new(attributes = {})
+        default_attributes = { 'id' => nil, 'created_at' => nil, 'updated_at' => nil, '_class' => self.name }
         attribute_accessors = self.attribute_accessors || []
-        
         merged_attributes = attribute_accessors.each_with_object({}) { |key, hash| hash[key.to_s] = nil }
-        Record.new(default_attributes.merge(merged_attributes).merge(attributes))
+        normalized_attributes = attributes.transform_keys(&:to_s)
+        Record.new(default_attributes.merge(merged_attributes).merge(normalized_attributes))
     end
 
     def self.create(attributes)
-        attributes = { 'id' => next_id(all.map(&:to_h) ) }.merge(attributes)
+        attributes = { 'id' => next_id(all.map(&:to_h)), '_class' => self.name }.merge(attributes)
         data = all.map(&:to_h)
         timestamp = Time.now.to_s
         new_record = attributes.merge('created_at' => timestamp, 'updated_at' => timestamp)
@@ -155,23 +187,28 @@ class JsonModel
             @attributes
         end
 
-        def update(attributes)
-            binding.pry
-            
-        end
-
         # def update(attributes)
-        #     attributes.each do |key, value|
-        #         if @attributes.key?(key.to_s)
-        #             @attributes[key.to_s] = value
-        #         else
-        #             raise NoMethodError, "undefined method `#{key}` for #{self.class.name}"
-        #         end
-        #     end
-        #     @attributes['updated_at'] = Time.now.to_s
-        #     JsonModel.send(:save, JsonModel.all.map(&:to_h))
-        #     self
+        #     binding.pry
         # end
+
+        def update(attributes)
+            attributes.each do |key, value|
+            if @attributes.key?(key.to_s)
+                @attributes[key.to_s] = value
+            else
+                raise NoMethodError, "undefined method `#{key}` for #{self.class.name}"
+            end
+            end
+            @attributes['updated_at'] = Time.now.to_s
+
+            data = JSON.parse(File.read(self._class.constantize.file_path)) rescue []
+            record = data.find { |r| r['id'] == @attributes['id'] }
+            return nil unless record
+
+            record.merge!(@attributes)
+            File.write(self._class.constantize.file_path, JSON.pretty_generate(data))
+            self
+        end
 
         # def update(id, attributes)
         #     record = JsonModel.find(id)
@@ -293,19 +330,19 @@ class JsonModel
         def save
             if @attributes['id'].nil?
                 # Create new record
-                @attributes['id'] = JsonModel.send(:next_id, JsonModel.all.map(&:to_h))
+                @attributes['id'] = self._class.constantize.send(:next_id, self._class.constantize.all.map(&:to_h))
                 @attributes['created_at'] = Time.now.to_s
                 @attributes['updated_at'] = Time.now.to_s
-                data = JsonModel.all.map(&:to_h)
+                data = self._class.constantize.all.map(&:to_h)
                 data << @attributes
-                JsonModel.send(:save, data)
+                self._class.constantize.send(:save, data)
             else
                 # Update existing record
                 @attributes['updated_at'] = Time.now.to_s
-                data = JsonModel.all.map(&:to_h)
+                data = self._class.constantize.all.map(&:to_h)
                 record = data.find { |r| r['id'] == @attributes['id'] }
                 record.merge!(@attributes)
-                JsonModel.send(:save, data)
+                self._class.constantize.send(:save, data)
             end
             self
         end

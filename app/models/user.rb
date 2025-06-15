@@ -1,4 +1,4 @@
-class User < JsonModel
+class User < JsonRecord
     include ActiveModel::Model
 
     has_many :addresses, class_name: 'Address', foreign_key: 'user_id', dependent: :destroy
