@@ -2,14 +2,14 @@
   {
     "id": 1,
     "created_at": "2025-06-15 21:39:23 +0530",
-    "updated_at": "2025-06-15 21:53:55 +0530",
+    "updated_at": "2025-06-17 21:07:34 +0530",
     "_class": "Address",
-    "line1": null,
+    "line1": "Saini Bhawan",
     "line2": null,
     "city": null,
     "zip_code": null,
     "country": null,
     "user_id": 7,
-    "state": "#<JsonModel::Record:0x0000556f8e4c24c8>"
+    "state": ""
   }
 ]

@@ -9,11 +9,27 @@ class JsonModelGenerator < Rails::Generators::Base
 
     def create_model_file
         file_path = File.join('app/models', "#{model_name.underscore}.rb")
+        processed_attributes = attributes.map do |attr|
+            if attr.end_with?(':references')
+                attr_name = attr.split(':').first
+                "#{attr_name}_id"
+            else
+                attr
+            end
+        end
+
+        associations = attributes.select { |attr| attr.end_with?(':references') }.map do |attr|
+            attr_name = attr.split(':').first
+            "belongs_to :#{attr_name}, class_name: '#{attr_name.camelize}'"
+        end
+
         create_file file_path, <<~FILE_CONTENT
             class #{model_name.camelize} < JsonModel
                 include ActiveModel::Model
 
-                attr_accessor #{attributes.map { |attr| ":#{attr}" }.join(', ')}
+                attr_accessor #{processed_attributes.map { |attr| ":#{attr}" }.join(', ')}
+
+                #{associations.join("\n    ")}
             end
         FILE_CONTENT
     end

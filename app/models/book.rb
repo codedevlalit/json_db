@@ -1,4 +1,4 @@
-class Book < JsonRecord
+class Book < JsonModel
     include ActiveModel::Model
 
     attr_accessor :name, :author

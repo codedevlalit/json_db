@@ -1,4 +1,4 @@
-class Product < JsonRecord
+class Product < JsonModel
   include ActiveModel::Model
 
   attr_accessor :name, :price_region

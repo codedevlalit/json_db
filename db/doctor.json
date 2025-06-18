@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "created_at": "2025-06-18 21:33:49 +0530",
+    "updated_at": "2025-06-18 21:33:49 +0530",
+    "_class": "Doctor",
+    "specialization": "Surgeon",
+    "name": "Dr Umesh Tyagi"
+  },
+  {
+    "id": 2,
+    "_class": "Doctor",
+    "name": "Dr Vedpal Nehra",
+    "specialization": "Surgeon",
+    "created_at": "2025-06-18 21:33:52 +0530",
+    "updated_at": "2025-06-18 21:35:52 +0530"
+  }
+]

@@ -1,7 +1,7 @@
-class Address < JsonRecord
+class Address < JsonModel
     include ActiveModel::Model  
 
-    belongs_to :user, class_name: 'User', foreign_key: 'user_id', optional: true
+    belongs_to :user, class_name: 'User'#, foreign_key: 'user_id', optional: true
     attr_accessor :line1, :line2, :city, :state, :zip_code, :country, :user_id
     # validates :user_id, presence: true
     # validates :line1, presence: true

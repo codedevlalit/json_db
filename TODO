@@ -5,6 +5,11 @@ User.new.save not getting saved // done
 User.new => not getting saved & not getting full attributes //done
 User.last.update not working // done 
 
+User.last.destroy not working // done
+dependent_destroy now working // done
+
+optional_true not working
+
 
 
 # Example usage:
@@ -21,7 +26,13 @@ User.last.update not working // done
 #   attr_accessor :name, :email, :age
 # end
 
+####
+add belongs_to in generator and handle user:references
 
+
+
+
+remove foreign_key from the model file
 
 has_one //done
 has_many //done
