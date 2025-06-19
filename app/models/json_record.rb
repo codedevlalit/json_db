@@ -35,11 +35,19 @@ class JsonRecord
         self.instance_methods(false).grep(/=$/).map { |method| method.to_s.chomp('=') }
     end
 
-    def self.has_many(association_name, class_name:, foreign_key: nil, dependent: nil)
-        define_method(association_name) do
-            key = foreign_key || "#{self.class.name.underscore}_id"
-            class_name.constantize.all.select do |record|
-                record.send(key) == self.id
+    def self.has_many(association_name, class_name:, foreign_key: nil, dependent: nil, through: nil)
+        if through
+            define_method(association_name) do
+                through_records = send(through)
+                ids = through_records.map { |record| record.send("#{class_name.underscore}_id") }
+                class_name.constantize.all.select { |record| ids.include?(record.id) }
+            end
+        else
+            define_method(association_name) do
+                key = foreign_key || "#{self.class.name.underscore}_id"
+                class_name.constantize.all.select do |record|
+                    record.send(key) == self.id
+                end
             end
         end
 
@@ -50,26 +58,52 @@ class JsonRecord
         end
 
         JsonRecord::Record.define_method(association_name) do
-            key = foreign_key || "#{self._class.constantize.name.underscore}_id"
-            class_name.constantize.all.select do |record|
-                record.send(key) == self.id
+            if through
+                through_records = send(through)
+                ids = through_records.map { |record| record.send("#{class_name.underscore}_id") }
+                class_name.constantize.all.select { |record| ids.include?(record.id) }
+            else
+                key = foreign_key || "#{self._class.constantize.name.underscore}_id"
+                class_name.constantize.all.select do |record|
+                    record.send(key) == self.id
+                end
             end
         end
     end
 
-    def self.has_one(association_name, class_name:, foreign_key: nil, optional: false)
-        define_method(association_name) do
-            key = foreign_key || "#{association_name}_id"
-            id = self.send(key)
-            return nil if optional && id.nil?
-            class_name.constantize.all.find { |record| record.id == id }
+    def self.has_one(association_name, class_name:, foreign_key: nil, optional: false, through: nil)
+        if through
+            define_method(association_name) do
+                through_records = send(through)
+                ids = through_records.map { |record| record.send("#{class_name.underscore}_id") }
+                class_name.constantize.all.select { |record| ids.include?(record.id) }
+            end
+        else
+            define_method(association_name) do
+                key = foreign_key || "#{self.class.name.underscore}_id"
+                class_name.constantize.all.select do |record|
+                    record.send(key) == self.id
+                end
+            end
+        end
+
+        if dependent == :destroy
+            define_method("destroy_#{association_name}") do
+                send(association_name).each(&:destroy)
+            end
         end
 
         JsonRecord::Record.define_method(association_name) do
-            key = foreign_key || "#{association_name}_id"
-            id = self.send(key)
-            return nil if optional && id.nil?
-            class_name.constantize.all.find { |record| record.id == id }
+            if through
+                through_records = send(through)
+                ids = through_records.map { |record| record.send("#{class_name.underscore}_id") }
+                class_name.constantize.all.select { |record| ids.include?(record.id) }
+            else
+                key = foreign_key || "#{self._class.constantize.name.underscore}_id"
+                class_name.constantize.all.select do |record|
+                    record.send(key) == self.id
+                end
+            end
         end
     end
 
