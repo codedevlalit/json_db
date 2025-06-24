@@ -4,7 +4,15 @@
     "created_at": "2025-06-15 21:21:14 +0530",
     "updated_at": "2025-06-15 21:21:14 +0530",
     "_class": "Book",
-    "author": "Shree Krishan Ji",
-    "name": "Bhagwat Geeta"
+    "title": "Bhagwat Geeta",
+    "author": "Shree Krishan Ji"
+  },
+  {
+    "id": 2,
+    "_class": "Book",
+    "title": "The Great Story",
+    "author": 1,
+    "created_at": "2025-06-23 23:36:47 +0530",
+    "updated_at": "2025-06-23 23:36:47 +0530"
   }
 ]
