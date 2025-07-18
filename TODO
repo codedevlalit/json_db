@@ -27,12 +27,12 @@ optional_true not working
 # end
 
 ####
-add belongs_to in generator and handle user:references
+add belongs_to in generator and handle user:references // done
 
 
 
 
-remove foreign_key from the model file
+remove foreign_key from the model file //done
 
 has_one //done
 has_many //done
