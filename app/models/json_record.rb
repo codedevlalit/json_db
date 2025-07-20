@@ -1,6 +1,7 @@
 require 'json'
 require 'ostruct'
 require 'active_support/core_ext/string'
+require 'action_view'
 
 class JsonRecord
     
@@ -13,16 +14,84 @@ class JsonRecord
         File.write(file_path, '[]') unless File.exist?(file_path)
     end
 
-    def self.all
-        JSON.parse(File.read(file_path)).map { |record| self.new(record) } rescue []
-    end
+    # def self.all
+    #     JSON.parse(File.read(file_path)).map { |record| self.new(record.merge('_class' => self.name)) } rescue []
+    # end
 
     def self.find(id)
-        all.find { |record| record.id == id }
+        all.find { |record| record.id.to_s == id.to_s }
+    end
+
+    def self.virtual_class(class_name)
+        @virtual_class ||= Class.new(JsonRecord::Record) do
+            define_singleton_method(:_class) { class_name }
+            # define_singleton_method(:model_name) do
+            #     ActiveModel::Name.new(self._class.constantize, nil, self._class.demodulize)
+            # end
+            define_singleton_method(:model_name) do
+                ActiveModel::Name.new(self._class.constantize, nil, self._class.demodulize)
+            end
+
+            define_method(:model_name) do
+                ActiveModel::Name.new(self._class, nil, self._class.demodulize)
+            end
+
+            define_method(:inspect) do
+                attributes_except_id = to_h.except('id', '_class')
+                formatted_attributes = attributes_except_id.map { |key, value| "#{key}: #{value}" }.join(", ")
+                "#<#{self._class}(id: #{id}, #{formatted_attributes})>"
+            end
+
+            define_method(:to_s) do
+                attributes_except_id = to_h.except('id', '_class')
+                formatted_attributes = attributes_except_id.map { |key, value| "#{key}: #{value}" }.join(", ")
+                "#<#{self._class}(id: #{id}, #{formatted_attributes})>"
+            end
+        end
+    end
+
+    def self.all
+        JSON.parse(File.read(file_path)).map do |record|
+            virtual_class(self.name).new(record.merge('_class' => self.name))
+        end rescue []
     end
 
     def self.find_by(attributes)
-        all.find { |record| attributes.all? { |key, value| record.send(key) == value } }
+        all.find do |record|
+            attributes.all? do |key, value|
+                key.to_s == 'id' ? record.to_h[key.to_s].to_s == value.to_s : record.to_h[key.to_s] == value
+            end
+        end
+    end
+
+    def self.where(conditions)
+        all.select do |record|
+            conditions.all? do |key, value|
+                key.to_s == 'id' ? record.to_h[key.to_s].to_s == value.to_s : record.to_h[key.to_s] == value
+            end
+        end
+    end
+
+    def self.find_or_create_by(attributes)
+        record = find_by(attributes)
+        return record if record
+
+        create(attributes)
+    end
+
+    def self.find_or_initialize_by(attributes)
+        record = find_by(attributes)
+        return record if record
+
+        new(attributes)
+    end
+
+    # Define the attributes dynamically based on the attr_accessor methods
+    def self.attr_accessor(*args)
+        args.each do |arg|
+            define_method(arg) { instance_variable_get("@#{arg}") }
+            define_method("#{arg}=") { |value| instance_variable_set("@#{arg}", value) }
+        end
     end
 
     # Define the attributes dynamically based on the attr_accessor methods
@@ -267,7 +336,10 @@ class JsonRecord
     end
 
     class Record
-        def initialize(attributes)
+        include ActiveModel::Model
+        include ActiveModel::Attributes
+
+        def initialize(attributes = {})
             @attributes = attributes
         end
 
@@ -278,6 +350,48 @@ class JsonRecord
                 super
             end
         end
+
+        def id
+            @attributes['id']
+        end
+
+        def persisted?
+            !id.nil?
+        end
+
+        def to_model
+            self
+        end
+
+        def model_name
+            ActiveModel::Name.new(self._class.constantize, nil, self._class.demodulize)
+        end
+
+        def errors
+            @errors ||= []
+        end
+
+        def valid?
+            errors.clear
+            self._class.constantize.attributes.each do |attribute|
+            value = send(attribute)
+            if value.nil? || value.to_s.strip.empty?
+                errors << "#{attribute} can't be blank"
+            end
+            end
+            errors.empty?
+        end
+
+        def save_with_validation
+            if valid?
+            save
+            else
+            false
+            end
+        end
+
+
+        # Removed the custom label method to avoid conflicts with Rails' built-in form.label helper
 
         def respond_to_missing?(method_name, include_private = false)
             @attributes.key?(method_name.to_s) || super
