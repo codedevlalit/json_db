@@ -22,12 +22,13 @@ class JsonRecord
         all.find { |record| record.id.to_s == id.to_s }
     end
 
+
+    #<User id: 1, name: "Lalit", email: "lalit@email.com", created_at: "2025-07-20 16:07:33", updated_at: "2025-07-20 16:07:33">
+    #<User id: nil, name: nil, email: nil, created_at: nil, updated_at: nil>
+
     def self.virtual_class(class_name)
         @virtual_class ||= Class.new(JsonRecord::Record) do
             define_singleton_method(:_class) { class_name }
-            # define_singleton_method(:model_name) do
-            #     ActiveModel::Name.new(self._class.constantize, nil, self._class.demodulize)
-            # end
             define_singleton_method(:model_name) do
                 ActiveModel::Name.new(self._class.constantize, nil, self._class.demodulize)
             end
@@ -37,15 +38,15 @@ class JsonRecord
             end
 
             define_method(:inspect) do
-                attributes_except_id = to_h.except('id', '_class')
-                formatted_attributes = attributes_except_id.map { |key, value| "#{key}: #{value}" }.join(", ")
-                "#<#{self._class}(id: #{id}, #{formatted_attributes})>"
+                attributes_except_class = to_h.except('_class')
+                formatted_attributes = attributes_except_class.map { |key, value| "#{key}: #{value}" }.join(", ")
+                "#<#{self._class.demodulize} #{formatted_attributes}>"
             end
 
             define_method(:to_s) do
-                attributes_except_id = to_h.except('id', '_class')
-                formatted_attributes = attributes_except_id.map { |key, value| "#{key}: #{value}" }.join(", ")
-                "#<#{self._class}(id: #{id}, #{formatted_attributes})>"
+                attributes_except_class = to_h.except('_class')
+                formatted_attributes = attributes_except_class.map { |key, value| "#{key}: #{value}" }.join(", ")
+                "#<#{self._class.demodulize} #{formatted_attributes}>"
             end
         end
     end
@@ -252,13 +253,16 @@ class JsonRecord
         # end
     end
 
-    
     def self.new(attributes = {})
         default_attributes = { 'id' => nil, 'created_at' => nil, 'updated_at' => nil, '_class' => self.name }
         attribute_accessors = self.attribute_accessors || []
         merged_attributes = attribute_accessors.each_with_object({}) { |key, hash| hash[key.to_s] = nil }
         normalized_attributes = attributes.transform_keys(&:to_s)
-        Record.new(default_attributes.merge(merged_attributes).merge(normalized_attributes))
+        record = Record.new(default_attributes.merge(merged_attributes).merge(normalized_attributes))
+        record.define_singleton_method(:model_name) do
+            ActiveModel::Name.new(self._class.constantize, nil, self._class.demodulize)
+        end
+        record
     end
 
     def self.create(attributes)
